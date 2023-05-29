@@ -1,21 +1,16 @@
 //
-//  searchViewController.swift
+//  ViewController.swift
 //  anchor
 //
-//  Created by Matthew Yeung on 21/6/2022.
+//  Created by Vincent Jin on 2022/6/21.
 //
 
-import Foundation
 import UIKit
 import SafariServices
 
-
-class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDelegate, UITableViewDataSource {
-
-    private let searchVC = UISearchController(searchResultsController: nil)
-    private var articles = [Article]()
-    private var viewModels = [NewsTableViewCellViewModel]()
-
+class FinanceViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+    
+    
     private let tableView: UITableView = {
         let table = UITableView()
         table.register(NewsTableViewCell.self,
@@ -23,25 +18,31 @@ class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDe
         return table
     }()
     
-    @IBOutlet weak var searchTextField: UISearchBar!
-    @IBOutlet weak var searchButton: UIButton!
-    @IBOutlet weak var searchTableView: UITableView!
+    
+    private var viewModels = [NewsTableViewCellViewModel]()
+    private var articles = [Article]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.navigationController?.navigationBar.isHidden=false
+        navigationItem.hidesBackButton = false
+
+        title = "Finance News"
+
+//        self.navigationController?.navigationBar.isHidden=true
+//        navigationItem.hidesBackButton = true
         
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
         tableView.rowHeight = UITableView.automaticDimension
         setupConstraints()
-        
-        view.backgroundColor = .systemBackground
 
-        
-        createSearchBar()
+        // Do any additional setup after loading the view
+        view.backgroundColor = .systemBackground
+        getTopArticles()
+//        searchArticles()
     }
-    
     
     func setupConstraints() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -54,19 +55,8 @@ class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDe
         NSLayoutConstraint.activate(constraints)
     }
     
-    private func createSearchBar(){
-        navigationItem.searchController = searchVC
-        searchVC.searchBar.delegate = self
-        
-    }
-    
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        guard let text = searchBar.text, !text.isEmpty else{
-            return
-        }
-        print (text)
-        
-        ArticlesAPI.shared.searchArticles(with: text){ [weak self] result in         //looking at API
+    func getTopArticles(){
+        ArticlesAPI.shared.getFinance{ [weak self] result in         //looking at API
             switch result{
             case .success(let articles):                                 // if there are results
                 self?.articles = articles
@@ -78,13 +68,34 @@ class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDe
                // break
                 DispatchQueue.main.async{
                     self?.tableView.reloadData()
-                    self?.searchVC.dismiss(animated: true, completion: nil)
                 }
             case .failure(let error):                                       //prints error if there is one
                 print(error)
             }
-        }
+
     }
+        
+        
+}
+    func searchArticles(){
+        ArticlesAPI.shared.searchFullArticles(with: "finance"){ [weak self] result in         //looking at API
+            switch result{
+            case .success(let articles):                                 // if there are results
+                self?.viewModels = articles.compactMap({
+                    NewsTableViewCellViewModel(name: $0.source.name, title: $0.title,     //tableview needs to be added
+                                           subtitle: $0.description ?? "No Description",
+                                           imageURL: URL(string: $0.urlToImage ?? ""))
+                })
+                //break
+                    DispatchQueue.main.async{
+                        self?.tableView.reloadData()
+                    }
+            case .failure(let error):                                       //prints error if there is one
+                print(error)
+                }
+            }
+                
+        }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -94,8 +105,6 @@ class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDe
 
     // table
 
-    
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModels.count
     }
@@ -119,5 +128,10 @@ class SearchViewController: UIViewController, UISearchBarDelegate, UITableViewDe
         present(vc, animated: true)
     }
     
-
+//    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+//        return 150
+//    }
+    
+    
 }
+
